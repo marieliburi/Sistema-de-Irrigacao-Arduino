@@ -1,0 +1,76 @@
+// ----------------------
+// Definição de pinos
+// ----------------------
+const int sensorPin = A0;        // Entrada analógica do sensor de umidade
+const int relePin = 8;           // Pino digital conectado ao módulo relé
+const int ledAmarelo = 7;        // LED amarelo: leitura
+const int ledAzul = 6;           // LED azul: solo úmido
+const int ledVerde = 5;          // LED verde: irrigação
+const int ledVermelho = 4;       // LED vermelho: erro
+
+// ----------------------
+// Limites de umidade
+// ----------------------
+const int limiteSeco = 300;      // Solo seco (aciona irrigação)
+const int limiteUmido = 250;     // Solo muito úmido (não irrigar)
+
+// ----------------------
+// Configuração inicial
+// ----------------------
+void setup() {
+  Serial.begin(9600);            // Inicializa comunicação serial
+  pinMode(relePin, OUTPUT);
+  pinMode(ledAmarelo, OUTPUT);
+  pinMode(ledVerde, OUTPUT);
+  pinMode(ledAzul, OUTPUT);
+  pinMode(ledVermelho, OUTPUT);
+
+  digitalWrite(relePin, HIGH);    // Relé desligado inicialmente (ativo LOW)
+  Serial.println("Sistema de Irrigacao Iniciado");
+  Serial.println("---------------------------------");
+}
+
+// ----------------------
+// Loop principal
+// ----------------------
+void loop() {
+  digitalWrite(ledAmarelo, HIGH);           // LED amarelo aceso: leitura
+  int valorSensor = analogRead(sensorPin);  // Lê valor do sensor
+  Serial.print("Valor do sensor: ");
+  Serial.println(valorSensor);              // Mostra no Serial Monitor
+  digitalWrite(ledAmarelo, LOW);            // Apaga LED amarelo após leitura
+
+  // Verifica se a leitura está dentro de limites válidos
+  if (valorSensor < 0 || valorSensor > 1023) {
+    digitalWrite(ledVermelho, HIGH); // Erro na leitura
+    digitalWrite(relePin, HIGH);     // Garante bomba desligada
+    digitalWrite(ledVerde, LOW);
+    digitalWrite(ledAzul, LOW);
+    Serial.println("Erro: leitura do sensor invalida!");
+  } else {
+    digitalWrite(ledVermelho, LOW);  // Sem erro
+
+    if (valorSensor > limiteSeco) {
+      // Solo seco → ligar bomba
+      digitalWrite(relePin, LOW);    // ativo LOW → liga bomba
+      digitalWrite(ledVerde, HIGH);  // acende LED verde
+      digitalWrite(ledAzul, LOW);
+      Serial.println("Solo seco: irrigando...");
+    } else if (valorSensor >= limiteUmido && valorSensor <= limiteSeco) {
+      // Solo na faixa ideal → não irrigar
+      digitalWrite(relePin, HIGH);   // ativo LOW → desliga bomba
+      digitalWrite(ledVerde, LOW);
+      digitalWrite(ledAzul, HIGH);   // LED azul indica solo ideal
+      Serial.println("Solo ideal: irrigacao desativada.");
+    } else {
+      // Solo muito úmido → não irrigar
+      digitalWrite(relePin, HIGH);   // ativo LOW → desliga bomba
+      digitalWrite(ledVerde, LOW);
+      digitalWrite(ledAzul, HIGH);   // LED azul indica solo úmido
+      Serial.println("Solo muito úmido: irrigacao desativada.");
+    }
+  }
+
+  Serial.println("---------------------------------");
+  delay(2000); // Aguarda 2 segundos antes da próxima leitura
+}
